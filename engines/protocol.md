@@ -62,6 +62,15 @@ id. The sender should then check if the message id returned by the
 reciever is the same as the message id it sent. If it is, then the
 message has succeeded. If it has not, then the message has failed.
 
+If there is a problem when the reciever tries to read the message
+(i.e. mismatched message ids, failed parsing of headers, timeout), it
+should return a failure message (simply write `FAIL` to the
+socket). There is no need to append any message ID to this write.
+
+If an entity receives `FAIL` instead of the usual confirmation
+message, it should reproduce and resend the message. If it happens
+again, the game should be cancelled.
+
 <pre>
 
 +--------+               +----------+
@@ -70,7 +79,7 @@ message has succeeded. If it has not, then the message has failed.
 
 +--------+               +----------+
 | sender | <------------ | reciever |
-+--------+      msgID    +----------+
++--------+     msgID     +----------+
 
 </pre>
 
@@ -86,7 +95,7 @@ sender is the player, a failed message indicates a problem with the
 engine (or with the connection). The ideal solution in this case would
 be to resend the message, but TGP does not currently support that, so
 if this happens, the reciever should request game cancellation, and
-file a bug report.
+file a bug report against the engine.
 
 Message layout
 --------------
