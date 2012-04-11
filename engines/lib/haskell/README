@@ -1,0 +1,49 @@
+The Hacker Games core libraries
+===============================
+
+These libraries aim to make it much easier to write engines and
+players for the Hacker Games (THG from this point forwards).
+
+HG.Proto
+--------
+
+The HG.Proto module found in `HG/Proto.hs` implements THG protocol, a
+protocol defining communication between players and engine. A spec for
+the protocol can be found in `../../protocol.md`.
+
+HG.Proto exports one static variable, `protoVersion`, a string that
+represents the current version of HGP that it implements. This is also
+the string that is sent to players connecting to an engine using
+HG.Proto to implement initial connection receival.
+
+Low level connections can be created using the `reciveConnections`
+function. It takes two arguments, the number of connections expected,
+and the port to listen to connections on. In accordance with HGP, it
+writes `protoVersion` to each of the sockets connected.
+
+The function `cleanupConnections` is also provided to close all
+connections passed to it. This should probabaly be run at the end of
+a game by the engine.
+
+There are 3 functions exposed relating to sending messages:
+`sendMessage`, which simply formats the message with a random message
+id, writes it to the handle, and then returns the message id,
+`receiveConfirmation` which simply checks the handle for an "OK" line
+and returns true if a) it can parse a message id from that line, and
+b) if the message id is equal to that passed as the second argument.
+Finally there is `sendAndCheckMessage`, which sends a message and then
+checks for "FAIL" messages. If it finds a "FAIL" message, it will try
+sending the message again, up to `maxTries` times. If it still fails,
+or if no "FAIL" message is detected, and no valid "OK" message is
+detected, then it will return `False`. When a valid "OK" message is
+found, it will return `True`. It is recomended to use
+`sendAndCheckMessage`.
+
+For recieving messages, there are 4 functions: `receiveMessage`,
+`confirmMessage`, `confirmFailMessage`, and
+`receiveAndConfirmMessage`. `receiveMessage` returns a tuple of the
+message and its message id. If an error occurs, then `Nothing` is
+returned. `receiveAndConfirmMessage` receives a message via
+`receiveMessage`. If the message could not be received, it calls
+`confirmFailMessage`, otherwise it calls `confirmMessage`, and
+continues.
