@@ -9,6 +9,8 @@ module HG.Proto
        , confirmMessage
        , confirmFailMessage
        , receiveAndConfirmMessage
+
+       , withSocketsDo -- Purely for convinience
        ) where
 
 import Control.Monad (join)
