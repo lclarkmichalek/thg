@@ -10,6 +10,7 @@ module HG.Proto
        , confirmFailMessage
        , receiveAndConfirmMessage
 
+       , Handle
        , withSocketsDo -- Purely for convinience
        ) where
 
