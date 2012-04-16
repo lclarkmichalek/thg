@@ -14,7 +14,7 @@ module HG.Proto
        , withSocketsDo -- Purely for convinience
        ) where
 
-import Control.Monad (join)
+import Control.Monad (join, void)
 import Data.Maybe (listToMaybe)
 import Data.List (isPrefixOf)
 
@@ -42,13 +42,13 @@ reciveConnections n p = do
             | otherwise = do
               (handle, host, port) <- accept sock
               writeProtoVersion handle
-              let p = return $ (n, handle)
+              let p = return (n, handle)
               rest <- recivePlayers' sock (n+1)
               return (p : rest)
 
 -- Closes all connections given
 cleanupConnections :: [Handle] -> IO()
-cleanupConnections hs = (sequence $ map hClose hs) >> return ()
+cleanupConnections hs = void $ mapM_ hClose hs
 
 writeProtoVersion :: Handle -> IO()
 writeProtoVersion h = hPutStrLn h protoVersion
@@ -61,9 +61,9 @@ maybeRead = fmap fst . listToMaybe . reads
 sendMessage :: Handle -> String -> IO Integer
 sendMessage h msg = do
   msgID <- getStdRandom random
-  hPutStrLn h ("START " ++ (show msgID))
+  hPutStrLn h $ "START " ++ show msgID
   hPutStrLn h msg
-  hPutStrLn h ("END " ++ (show msgID))
+  hPutStrLn h $ "END " ++ show msgID
   return msgID
 
 -- Tries to read a confirmation line from the handle, and checks that
@@ -72,7 +72,7 @@ sendMessage h msg = do
 receiveConfirmation :: Handle -> Integer -> IO Bool
 receiveConfirmation h msgID = do
   line <- hGetLine h
-  return $ (isOKLine line) && ((idFromOKLine line) == (Just msgID))
+  return $ isOKLine line && (idFromOKLine line == Just msgID)
 
 -- Sends a message and checks for confirmation.
 sendAndCheckMessage :: Handle -> String -> IO Bool
@@ -84,7 +84,7 @@ sendAndCheckMessage h msg = let
       line <- hGetLine h
       if isFailLine line
         then sacMsg h msg (tries+1)
-        else return $ (isOKLine line) && ((idFromOKLine line) == (Just msgID))
+        else return $ isOKLine line && (idFromOKLine line == Just msgID)
   in sacMsg h msg 0
 
 -- Recieves a message from the handle. Returns Nothing if there was a
@@ -93,7 +93,7 @@ receiveMessage :: Handle -> IO (Maybe (String, Integer))
 receiveMessage h = do
   fst <- hGetLine h
   if isStartLine fst
-    then do
+    then
     case idFromStartLine fst of
       Just smid' -> do
         (body, mid) <- receiveMessage' h
@@ -115,7 +115,7 @@ receiveMessage h = do
 
 -- Sends a confirmation message with the given message id
 confirmMessage :: Handle -> Integer -> IO()
-confirmMessage h msgID = hPutStrLn h ("OK " ++ (show msgID))
+confirmMessage h msgID = hPutStrLn h ("OK " ++ show msgID)
 
 -- Sends a failure message
 confirmFailMessage :: Handle -> IO()
