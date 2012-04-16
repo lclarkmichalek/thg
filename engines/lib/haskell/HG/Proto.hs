@@ -43,7 +43,7 @@ reciveConnections n p = do
               (handle, host, port) <- accept sock
               writeProtoVersion handle
               let p = return (n, handle)
-              rest <- recivePlayers' sock (n+1)
+              rest <- recivePlayers' sock (i+1)
               return (p : rest)
 
 -- Closes all connections given
