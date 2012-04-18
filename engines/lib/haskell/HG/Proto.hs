@@ -3,28 +3,24 @@ module HG.Proto
        , reciveConnections
        , cleanupConnections
        , sendMessage
-       , receiveConfirmation
-       , sendAndCheckMessage
        , receiveMessage
-       , confirmMessage
-       , confirmFailMessage
-       , receiveAndConfirmMessage
 
        , Handle
        , withSocketsDo -- Purely for convinience
        ) where
 
 import Control.Monad (join, void)
-import Data.Maybe (listToMaybe)
-import Data.List (isPrefixOf)
+
+import Text.JSON (encodeStrict, decode,
+                  JSON(..), Result(..),
+                  JSObject(..), JSValue(..))
 
 import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
-import System.IO (hSetBuffering, hGetLine, hPutStr, hClose, hPutStrLn,
-                  BufferMode(..), Handle)
+import System.IO (hGetLine, hPutStrLn, hClose, Handle)
 import System.Random (random, getStdRandom)
 
 -- The version of the HGP that this library implements
-protoVersion = "0.1"
+protoVersion = "0.2"
 
 -- The maximum number of retries attempted on a FAIL message
 maxTries = 2
@@ -42,7 +38,7 @@ reciveConnections n p = do
             | otherwise = do
               (handle, host, port) <- accept sock
               writeProtoVersion handle
-              let p = return (n, handle)
+              let p = return (i, handle)
               rest <- recivePlayers' sock (i+1)
               return (p : rest)
 
@@ -53,105 +49,19 @@ cleanupConnections hs = void $ mapM_ hClose hs
 writeProtoVersion :: Handle -> IO()
 writeProtoVersion h = hPutStrLn h protoVersion
 
-maybeRead :: Read a => String -> Maybe a
-maybeRead = fmap fst . listToMaybe . reads
-
 -- Sends a message to the given Handle, using the string as the body
 -- of the message. Returns the messageID of the message
-sendMessage :: Handle -> String -> IO Integer
-sendMessage h msg = do
+sendMessage :: Handle -> JSObject JSValue -> IO Integer
+sendMessage h obj = do
   msgID <- getStdRandom random
-  hPutStrLn h $ "START " ++ show msgID
-  hPutStrLn h msg
-  hPutStrLn h $ "END " ++ show msgID
+  hPutStrLn h (encodeStrict (showJSON obj))
   return msgID
-
--- Tries to read a confirmation line from the handle, and checks that
--- the messageID is the same as the one given. Does not distinguish
--- between FAIL messages and mismatch message ids
-receiveConfirmation :: Handle -> Integer -> IO Bool
-receiveConfirmation h msgID = do
-  line <- hGetLine h
-  return $ isOKLine line && (idFromOKLine line == Just msgID)
-
--- Sends a message and checks for confirmation.
-sendAndCheckMessage :: Handle -> String -> IO Bool
-sendAndCheckMessage h msg = let
-  sacMsg h msg tries
-    | tries > maxTries = return False
-    | otherwise= do
-      msgID <- sendMessage h msg
-      line <- hGetLine h
-      if isFailLine line
-        then sacMsg h msg (tries+1)
-        else return $ isOKLine line && (idFromOKLine line == Just msgID)
-  in sacMsg h msg 0
 
 -- Recieves a message from the handle. Returns Nothing if there was a
 -- problem parsing the message's headers, otherwise a tuple of (body, messageID)
-receiveMessage :: Handle -> IO (Maybe (String, Integer))
+receiveMessage :: JSON a => Handle -> IO (Maybe a)
 receiveMessage h = do
-  fst <- hGetLine h
-  if isStartLine fst
-    then
-    case idFromStartLine fst of
-      Just smid' -> do
-        (body, mid) <- receiveMessage' h
-        case mid of
-          Just mid' -> if smid' == mid'
-                       then return $ Just (body, mid')
-                       else return Nothing
-          Nothing -> return Nothing
-      Nothing -> return Nothing
-    else receiveMessage h
-   where receiveMessage' :: Handle -> IO (String, Maybe Integer)
-         receiveMessage' h = do
-           line <- hGetLine h
-           if isEndLine line
-             then return ([], idFromEndLine line)
-             else do
-             (body, mID) <- receiveMessage' h
-             return (line ++ body, mID)
-
--- Sends a confirmation message with the given message id
-confirmMessage :: Handle -> Integer -> IO()
-confirmMessage h msgID = hPutStrLn h ("OK " ++ show msgID)
-
--- Sends a failure message
-confirmFailMessage :: Handle -> IO()
-confirmFailMessage h = hPutStrLn h "FAIL"
-
--- Receives a message via receiveMessage, and then confirms it,
--- returning the message
-receiveAndConfirmMessage :: Handle -> IO (Maybe String)
-receiveAndConfirmMessage h = do
-  msg <- receiveMessage h
-  case msg of
-    Nothing -> confirmFailMessage h >> return Nothing
-    Just (msg', id) -> do
-      confirmMessage h id
-      return $ Just msg'
-
-isStartLine :: String -> Bool
-isStartLine = isPrefixOf "START "
-
-isEndLine :: String -> Bool
-isEndLine = isPrefixOf "END "
-
-isOKLine :: String -> Bool
-isOKLine = isPrefixOf "OK "
-
-isFailLine :: String -> Bool
-isFailLine = (==) "FAIL"
-
-idFromLine :: String -> String -> Maybe Integer
-idFromLine start = maybeRead . drop (length start)
-
-idFromEndLine :: String -> Maybe Integer
-idFromEndLine = idFromLine "END "
-
-idFromStartLine :: String -> Maybe Integer
-idFromStartLine = idFromLine "START "
-
-idFromOKLine :: String -> Maybe Integer
-idFromOKLine = idFromLine "OK "
+  raw <- hGetLine h
+  case decode raw of
+    Ok v -> return $ Just v
+    Error _ -> return Nothing

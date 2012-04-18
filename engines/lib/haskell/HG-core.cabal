@@ -48,7 +48,7 @@ Library
   Exposed-modules:     HG.Proto
   
   -- Packages needed in order to build this package.
-  Build-depends:       base, random, network
+  Build-depends:       base, random, network, json
   
   -- Modules not exported by this package.
   -- Other-modules:       
