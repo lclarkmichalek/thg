@@ -44,7 +44,7 @@ cleanupConnections :: [Handle] -> IO()
 cleanupConnections hs = void $ mapM_ hClose hs
 
 writeProtoVersion :: Handle -> IO()
-writeProtoVersion h = hPutStrLn h protoVersion
+writeProtoVersion h = hPutStrLn h protoVersion >> hFlush h
 
 -- Sends a message to the given Handle, using the string as the body
 -- of the message. Returns the messageID of the message
