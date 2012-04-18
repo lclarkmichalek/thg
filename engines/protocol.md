@@ -1,5 +1,5 @@
 
-The Hacker Games protocol v0.1
+The Hacker Games protocol v0.2
 ==============================
 
 The Hacker Games protocol is a protocol regarding the
@@ -40,79 +40,7 @@ and cancel the game.
 Messages
 --------
 
-A message in The Hacker Games protocol (HGP from this point forwards)
-is a high level one direction communication. It can be sent either
-from the engine to the player, or vice versa. For the sake of
-convinience, we will call the sender "sender" and the receiver
-"receiver".
-
-<pre>
-
-+--------+               +----------+
-| sender | ------------> | reciever |
-+--------+  TGP message  +----------+
-
-</pre>
-
-A TGP message consists of two TCP read/write pairs. The sender will
-generate a message id, which should be a random number. The message
-from the sender should include the message id. The reciever should
-aknowledge the message has been recieved by returning the message
-id. The sender should then check if the message id returned by the
-reciever is the same as the message id it sent. If it is, then the
-message has succeeded. If it has not, then the message has failed.
-
-If there is a problem when the reciever tries to read the message
-(i.e. mismatched message ids, failed parsing of headers, timeout), it
-should return a failure message (simply write `FAIL` to the
-socket). There is no need to append any message ID to this write.
-
-If an entity receives `FAIL` instead of the usual confirmation
-message, it should reproduce and resend the message. If it happens
-again, the game should be cancelled.
-
-<pre>
-
-+--------+               +----------+
-| sender | ------------> | reciever |
-+--------+  msg + msgID  +----------+
-
-+--------+               +----------+
-| sender | <------------ | reciever |
-+--------+     msgID     +----------+
-
-</pre>
-
-Message Failure
----------------
-
-When a message fails (that is, the message id returned by the reciever
-is not equal to that sent by the sender), the reciever is assumed to
-be at fault. If the sender is the engine, then the implications of
-this are clear: the player that is the reciever has failed to conform
-to the spec, and looses the game by default. On the other hand, if the
-sender is the player, a failed message indicates a problem with the
-engine (or with the connection). The ideal solution in this case would
-be to resend the message, but TGP does not currently support that, so
-if this happens, the reciever should request game cancellation, and
-file a bug report against the engine.
-
-Message layout
---------------
-
-The first message from sender to reciever should start with the line
-`START {message id}` where message id is the message's unique id. This
-should be followed by the message body, a strictly encoded JSON
-message (that is, with only an object or array at the top level). The
-message should end with a line along the lines of `END {message id}`.
-
-Here is an example first message sending the data `{"foo": "bar"}`:
-
-    START 203912
-    {"foo": "bar"}
-    END 203912
-
-The reciever should reply with a single line `OK {message id}`. So in
-the example above, the reciever would reply with:
-
-    OK 203912
+The HGP does not define much information on how communcation will take
+place. All messages should be JSON encoded, and have an object as
+their top level. Each message should have one newline in it; new lines
+in strings should be encoded as \n.
