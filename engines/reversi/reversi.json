@@ -1,0 +1,4 @@
+{
+    'name': 'reversi',
+    'players': 2,
+}
