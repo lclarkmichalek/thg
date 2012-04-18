@@ -16,14 +16,11 @@ import Text.JSON (encodeStrict, decode,
                   JSObject(..), JSValue(..))
 
 import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
-import System.IO (hGetLine, hPutStrLn, hClose, Handle)
+import System.IO (hGetLine, hPutStrLn, hClose, hFlush, Handle)
 import System.Random (random, getStdRandom)
 
 -- The version of the HGP that this library implements
 protoVersion = "0.2"
-
--- The maximum number of retries attempted on a FAIL message
-maxTries = 2
 
 -- Takes the number of incoming connections expected and the port they
 -- are connecting to, and returns an association list of each playerID
@@ -51,11 +48,8 @@ writeProtoVersion h = hPutStrLn h protoVersion
 
 -- Sends a message to the given Handle, using the string as the body
 -- of the message. Returns the messageID of the message
-sendMessage :: Handle -> JSObject JSValue -> IO Integer
-sendMessage h obj = do
-  msgID <- getStdRandom random
-  hPutStrLn h (encodeStrict (showJSON obj))
-  return msgID
+sendMessage :: Handle -> JSObject JSValue -> IO ()
+sendMessage h obj = hPutStrLn h (encodeStrict (showJSON obj)) >> hFlush h
 
 -- Recieves a message from the handle. Returns Nothing if there was a
 -- problem parsing the message's headers, otherwise a tuple of (body, messageID)
