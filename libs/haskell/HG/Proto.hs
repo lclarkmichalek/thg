@@ -9,13 +9,21 @@ module HG.Proto
        , withSocketsDo -- Purely for convinience
        ) where
 
+import Prelude hiding (catch)
+
 import Control.Monad (join, void)
+import Control.Exception (catch, handle, IOException)
 
 import Text.JSON (encodeStrict, decode,
                   JSON(..), Result(..),
                   JSObject(..), JSValue(..))
 
-import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
+import Network ( listenOn
+               , connectTo
+               , withSocketsDo
+               , accept
+               , PortID(..)
+               , Socket)
 import System.IO (hGetLine, hPutStrLn, hClose, hFlush, Handle)
 import System.Random (random, getStdRandom)
 
@@ -49,13 +57,17 @@ writeProtoVersion h = hPutStrLn h protoVersion >> hFlush h
 -- Sends a message to the given Handle, using the string as the body
 -- of the message. Returns the messageID of the message
 sendMessage :: Handle -> JSObject JSValue -> IO ()
-sendMessage h obj = hPutStrLn h (encodeStrict (showJSON obj)) >> hFlush h
+sendMessage h obj = handle (\e -> let _ = (e :: IOException) in return ())
+                    (hPutStrLn h (encodeStrict (showJSON obj)) >> hFlush h)
 
 -- Recieves a message from the handle. Returns Nothing if there was a
 -- problem parsing the message's headers, otherwise a tuple of (body, messageID)
 receiveMessage :: JSON a => Handle -> IO (Maybe a)
 receiveMessage h = do
-  raw <- hGetLine h
-  case decode raw of
-    Ok v -> return $ Just v
-    Error _ -> return Nothing
+  raw <- catch ((fmap Just) $ hGetLine h)
+      (\e -> let _ = (e :: IOException) in return Nothing)
+  case raw of
+    Nothing -> return Nothing
+    Just raw' -> case decode raw' of
+      Ok v -> return $ Just v
+      Error _ -> return Nothing
