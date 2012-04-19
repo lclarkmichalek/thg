@@ -1,6 +1,7 @@
 module HG.Proto
        ( protoVersion
        , reciveConnections
+       , connect
        , cleanupConnections
        , sendMessage
        , receiveMessage
@@ -47,6 +48,16 @@ reciveConnections n p = do
               let p = return (i, handle)
               rest <- recivePlayers' sock (i+1)
               return (p : rest)
+
+connect :: String -> Integer -> IO (Maybe Handle)
+connect h p = handle (\e -> let _ = (e :: IOException) in return Nothing) $ do
+  h <- connectTo h (PortNumber $ fromIntegral p)
+  msg <- (receiveMessage h) :: IO (Maybe (JSObject String))
+  case msg of
+    Just v -> return (if fromJSObject v == [("version", protoVersion)]
+                      then Just h
+                      else Nothing)
+    Nothing -> return Nothing
 
 -- Closes all connections given
 cleanupConnections :: [Handle] -> IO()
