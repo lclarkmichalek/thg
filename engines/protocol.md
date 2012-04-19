@@ -1,6 +1,6 @@
 
-The Hacker Games protocol v0.2
-==============================
+The Hacker Games protocol v0.2.1
+================================
 
 The Hacker Games protocol is a protocol regarding the
 communication between the engine program, responsible for mediating a
@@ -31,11 +31,14 @@ player might look like this:
     data Player = Player { playerSocket :: Handle
                          , playerID :: Integer}
 
-Once connections have been established, the engine should send the
-version of the HGP it will conform to. No reply is expected from the
-reciever, as they can simply close the socket if they do not conform
-to the given version of the HGP which will indicate a techical fault,
-and cancel the game.
+Once connections have been established, the engine should send a
+message containing the version of HGP they conform to. No reply is
+expected from the reciever, as they can simply close the socket if
+they do not conform to the given version of the HGP which will
+indicate a techical fault, and cancel the game. The message should
+look like this:
+
+    {"version": "0.2.1"}
 
 Messages
 --------
