@@ -8,7 +8,7 @@ An implementation of the Hacker Games protocol in python.
 import socket
 import json
 
-PROTOCOL_VERSION = "0.2"
+PROTOCOL_VERSION = "0.2.1"
 
 def recieve_connections(port, count):
     """
@@ -20,7 +20,7 @@ def recieve_connections(port, count):
     sock.listen(count)
     for _ in range(count):
         con, addr = sock.accept()
-        con.send(PROTOCOL_VERSION + "\n")
+        con.send(json.dumps({"version": PROTOCOL_VERSION}) + "\n")
         yield Connection(con)
 
 def connect(host, port):
@@ -31,7 +31,8 @@ def connect(host, port):
     sock = socket.socket()
     sock.connect((host, port))
     con = Connection(sock)
-    assert str(con.recieve_message()) == PROTOCOL_VERSION
+    assert str(con.recieve_message()) == {"version": PROTOCOL_VERSION},\
+        "Unsupported version of HGP"
     return con
 
 class Connection():
