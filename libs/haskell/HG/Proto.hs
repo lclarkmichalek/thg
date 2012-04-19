@@ -15,6 +15,7 @@ import Control.Monad (join, void)
 import Control.Exception (catch, handle, IOException)
 
 import Text.JSON (encodeStrict, decode,
+                  toJSObject, fromJSObject,
                   JSON(..), Result(..),
                   JSObject(..), JSValue(..))
 
@@ -28,7 +29,7 @@ import System.IO (hGetLine, hPutStrLn, hClose, hFlush, Handle)
 import System.Random (random, getStdRandom)
 
 -- The version of the HGP that this library implements
-protoVersion = "0.2"
+protoVersion = "0.2.1"
 
 -- Takes the number of incoming connections expected and the port they
 -- are connecting to, and returns an association list of each playerID
@@ -52,7 +53,8 @@ cleanupConnections :: [Handle] -> IO()
 cleanupConnections hs = void $ mapM_ hClose hs
 
 writeProtoVersion :: Handle -> IO()
-writeProtoVersion h = hPutStrLn h protoVersion >> hFlush h
+writeProtoVersion h = hPutStrLn h encoded >> hFlush h
+  where encoded = encodeStrict (toJSObject [("version", protoVersion)])
 
 -- Sends a message to the given Handle, using the string as the body
 -- of the message. Returns the messageID of the message
