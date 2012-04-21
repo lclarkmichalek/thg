@@ -27,6 +27,8 @@ object is the player id of the player who will take the next
 turn, and the `'you'` field is the id of the player to whom the
 message was sent.
 
+Board coordinates start from 1 and go up to `length board`
+
 Standard Turn
 -------------
 
@@ -34,7 +36,7 @@ A standard turn will begin with the player who is due to take a turn
 sending a message of the following format to the engine:
 
     {
-    'placed': [0, 0],
+    'placed': [1, 1],
     }
 
 Where the value of the `'placed'` field are the coordinates of the
@@ -42,7 +44,7 @@ stone that the player has elected to placed. The engine will then send
 another message to both players:
 
     {
-    'changed': [[0, 0], [1, 1], [2, 2]],
+    'changed': [[1, 2], [1, 1], [2, 2]],
     'by': 1,
     'next_turn': 0,
     'game_status': 0

@@ -90,19 +90,16 @@ type Board = [[Maybe PlayerID]]
 
 addToBoard :: Coord -> PlayerID -> Board -> Board
 addToBoard (x, y) pid b = brow ++ [bcol ++ [Just pid] ++ acol] ++ arow
-  where (brow, arow') = splitAt (fromInteger x) b
-        row = head arow'
-        arow = tail arow'
-        (bcol, acol') = splitAt (fromInteger y) row
-        acol = tail acol'
+  where (brow, (row:arow)) = splitAt (fromIntegral x - 1) b
+        (bcol, (col:acol)) = splitAt (fromIntegral y - 1) row
 
-getFromBoard (x, y) b = (b !! fromInteger x) !! fromInteger y
+getFromBoard (x, y) b = (b !! fromInteger (x - 1)) !! fromInteger (y - 1)
 
 -- Can the given player place a stone here
 validMove :: Coord -> Player -> Board -> Bool
 validMove c p b = notTaken && aPieceChanged
   where notTaken = isNothing $ getFromBoard c b
-        aPieceChanged = all (\d -> changeInDirection c p d b) directions
+        aPieceChanged = any (\d -> changeInDirection c p d b) directions
 
 -- Can any player place a stone here
 openPlace :: Coord -> Game -> Bool
@@ -111,31 +108,30 @@ openPlace c g = any (\p -> validMove c p (gameBoard g)) ps
         b = gameBoard g
 
 mapBoardC :: (Coord -> Maybe PlayerID -> a) -> Board -> [[a]]
-mapBoardC f b = zipWith mapB' b [0..]
-  where mapB' r x = zipWith (\v y -> f (x, y) v) r [0..]
+mapBoardC f b = zipWith mapB' b [1..]
+  where mapB' r x = zipWith (\v y -> f (x, y) v) r [1..]
 
-mapBoard f b = map mapB' b
-  where mapB' r = map f r
+mapBoard f b = map (map f) b
 
 changeInDirection :: Coord -> Player -> Direction -> Board -> Bool
-changeInDirection c p d b = changeInDirection' (changer c)
-  where changeInDirection' c@(x, y)
+changeInDirection c p d b = changeInDirection' (changer c) False
+  where changeInDirection' c@(x, y) t
         -- edges
           | x <= 0 || y <= 0 || x > 8 || y > 8 = False
         -- my stone
-          | stone == Just (playerID p) = True
+          | stone == Just (playerID p) && t = True
         -- no stone
           | isNothing stone = False
         -- enemy stone
-          | otherwise = changeInDirection' (changer c)
+          | otherwise = changeInDirection' (changer c) True
           where stone = getFromBoard c b
         changer = snd (head (filter (\p -> fst p == d) directionModifiers))
 
 swapStones :: Coord -> Player -> Direction -> Board -> Board
-swapStones c p d b = swapStones' (changer c) b
+swapStones c p d b = swapStones' (changer c) (addToBoard c (playerID p) b)
   where swapStones' c b
           | stone == Just (playerID p) = b
-          | isNothing stone = b
+          | isNothing stone || (not $ changeInDirection c p d b) = b
           | otherwise = swapStones' (changer c) (addToBoard c (playerID p) b)
           where stone = getFromBoard c b
         changer = snd (head (filter (\p -> fst p == d) directionModifiers))
