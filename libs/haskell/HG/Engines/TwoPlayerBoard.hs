@@ -17,6 +17,10 @@ module HG.Engines.TwoPlayerBoard
        , runGame
 
        , liftBoard
+       , notCurrentPlayer
+       , addToBoard
+       , getFromBoard
+       , finishGame
        ) where
 
 import HG.Proto
