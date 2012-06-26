@@ -7,7 +7,7 @@ Name:                HG-core
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.1
+Version:             0.1.1
 
 -- A short (one-line) description of the package.
 Synopsis:            Core libraries for writing players and engines for the Hacker Games
@@ -45,7 +45,7 @@ Cabal-version:       >=1.2
 
 Library
   -- Modules exported by the library.
-  Exposed-modules:     HG.Proto
+  Exposed-modules:     HG.Proto, HG.Engines.TwoPlayerBoard
   
   -- Packages needed in order to build this package.
   Build-depends:       base, random, network, json
