@@ -13,7 +13,7 @@ Low level details
 Communication takes places over TCP network sockets, so standard
 network latency should be expected.
 
-Connection initialization
+Connection initialisation
 -------------------------
 
 The engine program must bind to the socket given to it as its first
